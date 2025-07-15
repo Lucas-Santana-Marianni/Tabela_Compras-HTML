@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Lista de Compras</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 30px;
+      background: #ffffff;
+    }
+    h1, h2 {
+      color: #020202;
+    }
+    #form-container {
+      margin-bottom: 20px;
+    }
+    input, button {
+      padding: 10px;
+      margin-right: 10px;
+      font-size: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 10px;
+      border: 2px solid #000000;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1 align="center"><mark style="background-color: rgb(128, 56, 56); font-size: 70px">🛒 Lista de Compras</mark></h1>
+  <div align="center" id="form-container">
+    <input type="text" id="nome" placeholder="Item" required>
+    <input type="number" id="quantidade" placeholder="Qtd" required>
+    <input type="number" id="preco" placeholder="Preço" step="0.01" required>
+    <button id="adicionarBtn">Adicionar</button>
+  </div>
+  <table border="2px" style="background-color: rgb(235, 233, 233);">
+    <thead>
+      <tr style="background-color:rgb(128, 56, 56);">
+        <th>Item</th>
+        <th>Qtd</th>
+        <th>Preço</th>
+        <th>Total</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="lista-compras"></tbody>
+  </table>
+  <h2>Total Geral: R$ <span id="total-geral">0.00</span></h2>
+  <button id="atualizarBtn">Atualizar</button>
+  <button id="limparBtn">Limpar Lista</button>
+
+  <script>
+    const lista = document.getElementById("lista-compras");
+    const totalGeral = document.getElementById("total-geral");
+
+    window.onload = () => {
+      const itensSalvos = JSON.parse(localStorage.getItem("itensCompras"));
+
+      if (!itensSalvos || itensSalvos.length === 0) {
+        const itensPadrao = [
+          "Arroz", "Feijão", "Macarrão", "Farinha de Mandioca", "Farinha de Trigo",
+          "Fubá", "Café", "Óleo de Soja", "Leite", "Açúcar", "Sal", "Ovos",
+          "Biscoito", "Detergente Líquido", "Sabão em Barra", "Desinfetante",
+          "Água Sanitária", "Esponja", "Sabão em Pó", "Papel Higiênico",
+          "Papel Toalha", "Saco de Lixo", "Carne Moída", "Coxão Mole", "Bisteca Suína",
+          "Lombo Suíno", "Peito de Frango", "Coxa e Sobrecoxa", "Queijo",
+          "Presunto", "Iogurte", "Nata"
+        ];
+
+        const itensComValores = itensPadrao.map(nome => {
+          const preco = parseFloat((Math.random() * 15 + 2).toFixed(2));
+          const quantidade = 1 + Math.floor(Math.random() * 3);
+          return {
+            nome,
+            quantidade,
+            preco,
+            total: quantidade * preco
+          };
+        });
+
+        localStorage.setItem("itensCompras", JSON.stringify(itensComValores));
+        itensComValores.forEach((item, index) => adicionarNaTabela(item, index));
+      } else {
+        itensSalvos.forEach((item, index) => adicionarNaTabela(item, index));
+      }
+
+      atualizarTotal();
+    };
+
+    document.getElementById("adicionarBtn").addEventListener("click", () => {
+      const nome = document.getElementById("nome").value;
+      const quantidade = parseInt(document.getElementById("quantidade").value);
+      const preco = parseFloat(document.getElementById("preco").value);
+
+      if (!nome || quantidade <= 0 || preco <= 0) {
+        alert("Preencha os campos corretamente!");
+        return;
+      }
+
+      const item = {
+        nome,
+        quantidade,
+        preco,
+        total: quantidade * preco
+      };
+
+      const itens = JSON.parse(localStorage.getItem("itensCompras")) || [];
+      itens.push(item);
+      localStorage.setItem("itensCompras", JSON.stringify(itens));
+
+      adicionarNaTabela(item, itens.length - 1);
+      atualizarTotal();
+      limparCampos();
+    });
+
+    document.getElementById("atualizarBtn").addEventListener("click", () => {
+      alert("Atualizado com dados locais!");
+      location.reload();
+    });
+
+    document.getElementById("limparBtn").addEventListener("click", () => {
+      if (confirm("Tem certeza que deseja apagar toda a lista?")) {
+        localStorage.removeItem("itensCompras");
+        lista.innerHTML = "";
+        totalGeral.textContent = "0.00";
+      }
+    });
+
+    function adicionarNaTabela(item, index) {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td><input type="text" value="${item.nome}" class="input-nome" /></td>
+        <td><input type="number" value="${item.quantidade}" class="input-quantidade" min="1" /></td>
+        <td><input type="number" value="${item.preco.toFixed(2)}" class="input-preco" min="0" step="0.01" /></td>
+        <td class="total-cell">R$ ${item.total.toFixed(2)}</td>
+        <td>
+          <button class="salvarBtn">Salvar</button>
+          <button class="removerBtn">Remover</button>
+        </td>
+      `;
+
+      row.querySelector(".salvarBtn").addEventListener("click", () => {
+        const nome = row.querySelector(".input-nome").value;
+        const quantidade = parseInt(row.querySelector(".input-quantidade").value);
+        const preco = parseFloat(row.querySelector(".input-preco").value);
+
+        if (!nome || quantidade <= 0 || preco <= 0) {
+          alert("Preencha os campos corretamente!");
+          return;
+        }
+
+        const total = quantidade * preco;
+        row.querySelector(".total-cell").textContent = `R$ ${total.toFixed(2)}`;
+
+        const itens = JSON.parse(localStorage.getItem("itensCompras")) || [];
+        itens[index] = { nome, quantidade, preco, total };
+        localStorage.setItem("itensCompras", JSON.stringify(itens));
+
+        atualizarTotal();
+      });
+
+      row.querySelector(".removerBtn").addEventListener("click", () => {
+        const itens = JSON.parse(localStorage.getItem("itensCompras")) || [];
+        itens.splice(index, 1);
+        localStorage.setItem("itensCompras", JSON.stringify(itens));
+        location.reload();
+      });
+
+      lista.appendChild(row);
+    }
+
+    function atualizarTotal() {
+      const itens = JSON.parse(localStorage.getItem("itensCompras")) || [];
+      const total = itens.reduce((acc, item) => acc + item.total, 0);
+      totalGeral.textContent = total.toFixed(2);
+    }
+
+    function limparCampos() {
+      document.getElementById("nome").value = "";
+      document.getElementById("quantidade").value = "";
+      document.getElementById("preco").value = "";
+    }
+  </script>
+</body>
+</html>
